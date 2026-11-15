@@ -1,0 +1,189 @@
+### Experia360 API samples (VS Code "REST Client" extension format)
+#
+# Start the API first (`npm run dev`, or `npm run dev -w api`) and seed demo data (`npm run seed`).
+# Every value here is synthetic. Fill in the two variables below from YOUR .env and never commit them:
+#   @password: SEED_DEMO_PASSWORD (demo only)
+#   @webhookSignature: computed from the body of "Signed webhook" (see the command next to it)
+#
+# Requests are numbered in a sensible demo order. Named requests (# @name) feed later ones.
+
+@baseUrl = http://localhost:4000
+@password = paste-SEED_DEMO_PASSWORD-here
+
+### 1. Health (public)
+GET {{baseUrl}}/api/health
+
+### 2. Log in as Merchant A (Nova Retail). The token is reused below.
+# @name loginA
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "merchant.a@experia.test", "password": "{{password}}" }
+
+### 3. Log in as Merchant B (Orbit Foods)
+# @name loginB
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "merchant.b@experia.test", "password": "{{password}}" }
+
+### 4. Log in as admin
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@experia.test", "password": "{{password}}" }
+
+### 5. Wrong password -> 401 with a generic message ("Invalid email or password")
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "merchant.a@experia.test", "password": "not-the-password" }
+
+### 6. Current user
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{loginA.response.body.token}}
+
+### 7. Create a payment (merchant only). Amount is integer paise: 49900 = Rs 499.00.
+# Change the Idempotency-Key to create another payment; resend unchanged to see the replay.
+# @name createPayment
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{loginA.response.body.token}}
+Content-Type: application/json
+Idempotency-Key: demo-key-0001-change-me
+
+{ "amountPaise": 49900, "description": "REST Client demo order", "customerEmail": "buyer@example.test" }
+
+### 8. Same key, same body -> 200 + Idempotent-Replayed: true, same payment (no second row)
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{loginA.response.body.token}}
+Content-Type: application/json
+Idempotency-Key: demo-key-0001-change-me
+
+{ "amountPaise": 49900, "description": "REST Client demo order", "customerEmail": "buyer@example.test" }
+
+### 9. Same key, different body -> 409 IDEMPOTENCY_KEY_REUSED
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{loginA.response.body.token}}
+Content-Type: application/json
+Idempotency-Key: demo-key-0001-change-me
+
+{ "amountPaise": 99900 }
+
+### 10. Missing Idempotency-Key -> 400
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{loginA.response.body.token}}
+Content-Type: application/json
+
+{ "amountPaise": 49900 }
+
+### 11. Invalid amount (decimal) -> 422 VALIDATION_ERROR
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{loginA.response.body.token}}
+Content-Type: application/json
+Idempotency-Key: demo-key-invalid-amount
+
+{ "amountPaise": 499.5 }
+
+### 12. Admin cannot create payments -> 403
+POST {{baseUrl}}/api/payments
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+Idempotency-Key: demo-key-admin-0001
+
+{ "amountPaise": 49900 }
+
+### 13. List payments: server-side pagination, status filter, search by reference or provider id
+GET {{baseUrl}}/api/payments?page=1&pageSize=10&status=SUCCESS
+Authorization: Bearer {{loginA.response.body.token}}
+
+### 14. Search by (part of) a reference
+GET {{baseUrl}}/api/payments?q={{createPayment.response.body.payment.reference}}
+Authorization: Bearer {{loginA.response.body.token}}
+
+### 15. Summary cards: counts and amounts per status
+GET {{baseUrl}}/api/payments/summary
+Authorization: Bearer {{loginA.response.body.token}}
+
+### 16. Payment details: payment + audit timeline + webhook events (with duplicateDeliveries)
+GET {{baseUrl}}/api/payments/{{createPayment.response.body.payment.id}}
+Authorization: Bearer {{loginA.response.body.token}}
+
+### 17. Merchant B reading Merchant A's payment -> 404 (existence is not leaked)
+GET {{baseUrl}}/api/payments/{{createPayment.response.body.payment.id}}
+Authorization: Bearer {{loginB.response.body.token}}
+
+### 18. Merchant calling an admin route -> 403
+GET {{baseUrl}}/api/admin/merchants
+Authorization: Bearer {{loginA.response.body.token}}
+
+### 19. Admin: merchants for the selector
+# @name merchants
+GET {{baseUrl}}/api/admin/merchants
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 20. Admin: payments of one merchant
+GET {{baseUrl}}/api/payments?merchantId={{merchants.response.body.items.0.id}}&pageSize=5
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 21. Signed webhook, the easy way: the mock provider settles the payment and sends the signed
+# webhook itself (here the same event 5 times -> 1 applied, 4 duplicates). Then re-run request 16.
+POST {{baseUrl}}/mock-provider/payments/{{createPayment.response.body.payment.reference}}/settle
+Content-Type: application/json
+
+{ "status": "SUCCESS", "duplicates": 5 }
+
+### 22. Signed webhook, by hand. The signature is hex HMAC-SHA256 of the EXACT raw body bytes.
+# REST Client cannot compute it, so copy the body below onto ONE line (no trailing newline), then:
+#   node -e "require('dotenv').config({quiet:true});process.stdout.write(require('crypto').createHmac('sha256',process.env.PROVIDER_WEBHOOK_SECRET).update(process.argv[1]).digest('hex'))" '<body>'
+# (run it from the repo root; it reads PROVIDER_WEBHOOK_SECRET from .env) and paste the result below.
+# Use the reference of a PENDING payment (create a new one in request 7 first).
+@webhookSignature = paste-hex-signature-here
+POST {{baseUrl}}/api/webhooks/payment-provider
+Content-Type: application/json
+X-Provider-Signature: {{webhookSignature}}
+
+{"eventId":"evt_manual_0001","paymentReference":"PAY_REPLACE_ME","status":"SUCCESS","providerPaymentId":"prov_manual_0001","occurredAt":"2026-11-15T10:00:00.000Z"}
+
+### 23. Bad signature -> 401 INVALID_SIGNATURE, nothing stored
+POST {{baseUrl}}/api/webhooks/payment-provider
+Content-Type: application/json
+X-Provider-Signature: 0000000000000000000000000000000000000000000000000000000000000000
+
+{"eventId":"evt_bad_sig_0001","paymentReference":"PAY_REPLACE_ME","status":"SUCCESS","occurredAt":"2026-11-15T10:00:00.000Z"}
+
+### 24. Missing signature -> 401
+POST {{baseUrl}}/api/webhooks/payment-provider
+Content-Type: application/json
+
+{"eventId":"evt_no_sig_0001","paymentReference":"PAY_REPLACE_ME","status":"SUCCESS","occurredAt":"2026-11-15T10:00:00.000Z"}
+
+### 25. Mock provider: the provider's own view of a payment (what reconciliation reads)
+GET {{baseUrl}}/mock-provider/payments/{{createPayment.response.body.payment.reference}}
+
+### 26. Mock provider control (demo only): make the provider hang so the next create times out
+POST {{baseUrl}}/mock-provider/control
+Content-Type: application/json
+
+{ "timeoutRate": 1 }
+
+### 27. ...and back to normal
+POST {{baseUrl}}/mock-provider/control
+Content-Type: application/json
+
+{ "delayMs": 0, "timeoutRate": 0, "errorRate": 0 }
+
+### 28. Admin: run reconciliation
+POST {{baseUrl}}/api/admin/reconcile
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{ "olderThanMinutes": 0, "limit": 200 }
+
+### 29. Admin: recent reconciliation runs
+GET {{baseUrl}}/api/admin/reconciliation-runs?limit=5
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 30. Log out (clears the session cookie)
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{loginA.response.body.token}}

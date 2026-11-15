@@ -1,0 +1,34 @@
+{
+  "name": "experia-task",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Secure payment webhook processor and merchant transaction dashboard (Experia360 technical assessment)",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "migrate": "npm run migrate -w api",
+    "migrate:test": "npm run migrate:test -w api",
+    "seed": "npm run seed -w api",
+    "simulate": "npm run simulate -w api",
+    "reconcile": "npm run reconcile -w api",
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev -w api\" \"npm run dev -w web --if-present\"",
+    "test": "npm test -w api",
+    "test:report": "npm run test:report -w api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.7"
+  },
+  "overrides": {
+    "vite": "7.3.8",
+    "postcss": "8.5.33"
+  }
+}

@@ -1,0 +1,22 @@
+# dependencies & build output
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets: only .env.example is ever committed
+.env
+.env.*
+!.env.example
+
+# local tooling / personal notes
+.claude/
+SETUP_GUIDE.md
+
+# misc
+*.log
+.DS_Store
+Thumbs.db

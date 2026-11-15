@@ -1,0 +1,140 @@
+
+ RUN  v4.1.12 C:/Users/Gaurav Prajapati/Desktop/Task/experia-task/api
+
+ ✓ tests/webhooks.test.ts > signature verification > test 1: a validly signed SUCCESS event -> 200, payment SUCCESS, exactly 1 ledger entry 2228ms
+ ✓ tests/webhooks.test.ts > signature verification > test 2: an invalid signature -> 401 INVALID_SIGNATURE and NO webhook_events row 327ms
+ ✓ tests/webhooks.test.ts > signature verification > test 3: a missing signature -> 401, nothing stored 334ms
+ ✓ tests/webhooks.test.ts > signature verification > test 4: body altered after signing -> 401 (verification uses the raw bytes) 341ms
+ ✓ tests/webhooks.test.ts > signature verification > rejects malformed signature headers (wrong length, non-hex) with 401 without throwing 350ms
+ ✓ tests/webhooks.test.ts > signature verification > validates the payload only after verifying it: signed but invalid -> 422, nothing stored 341ms
+ ✓ tests/webhooks.test.ts > signature verification > rejects non-JSON content types with 415 257ms
+ ✓ tests/webhooks.test.ts > signature verification > returns 404 UNKNOWN_PAYMENT for an unknown reference and keeps the event (outcome unknown_payment) 750ms
+ ✓ tests/webhooks.test.ts > duplicate and concurrent delivery (mandatory) > test 5: the same SUCCESS event x5 sequentially -> status changes once, 1 ledger entry, 1 audit row, 4 duplicates 2534ms
+ ✓ tests/webhooks.test.ts > duplicate and concurrent delivery (mandatory) > test 6: the same SUCCESS event x5 concurrently -> exactly one applied, 1 ledger entry, 1 audit row 1315ms
+ ✓ tests/webhooks.test.ts > duplicate and concurrent delivery (mandatory) > test 7: two DIFFERENT event ids, both SUCCESS, concurrently -> still exactly 1 ledger entry 1132ms
+ ✓ tests/webhooks.test.ts > duplicate and concurrent delivery (mandatory) > a re-sent SUCCESS with a new event id after SUCCESS -> stale, no second ledger entry 1398ms
+ ✓ tests/webhooks.test.ts > out-of-order and contradictory events > test 8: FAILED then SUCCESS -> 409, stays FAILED, no ledger entry, flagged for reconciliation 1394ms
+ ✓ tests/webhooks.test.ts > out-of-order and contradictory events > SUCCESS then FAILED -> 409, stays SUCCESS with its single ledger entry 1476ms
+ ✓ tests/webhooks.test.ts > out-of-order and contradictory events > test 9: a late PENDING after SUCCESS -> 200 stale, status unchanged 1447ms
+ ✓ tests/webhooks.test.ts > out-of-order and contradictory events > PENDING while already PENDING -> stale, nothing changes 793ms
+ ✓ tests/webhooks.test.ts > out-of-order and contradictory events > FAILED from PENDING -> applied, no ledger entry 973ms
+ ✓ tests/webhooks.test.ts > what is stored > stores the parsed body but never the signature header 1103ms
+ ✓ tests/payments.test.ts > POST /api/payments: creation > creates a PENDING payment with an audit row null -> PENDING (201) 1199ms
+ ✓ tests/payments.test.ts > POST /api/payments: creation > ignores a merchantId in the body: the payment belongs to the merchant in the JWT 504ms
+ ✓ tests/payments.test.ts > POST /api/payments: creation > forbids admins from creating payments (403) 185ms
+ ✓ tests/payments.test.ts > POST /api/payments: creation > requires authentication (401) 198ms
+ ✓ tests/payments.test.ts > POST /api/payments: idempotency > test 11: same key + same body twice -> one row; the replay returns 200 with the original payment 992ms
+ ✓ tests/payments.test.ts > POST /api/payments: idempotency > test 12: same key + different body -> 409 IDEMPOTENCY_KEY_REUSED, original unchanged 767ms
+ ✓ tests/payments.test.ts > POST /api/payments: idempotency > test 13: same key sent 5 times concurrently -> exactly one row, one 201 and four replays 1179ms
+ ✓ tests/payments.test.ts > POST /api/payments: idempotency > scopes keys per merchant: two merchants may use the same key independently 867ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a negative amount with 422 184ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a zero amount with 422 182ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a decimal amount with 422 183ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a missing amount with 422 183ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a a numeric string amount with 422 184ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a above the ₹1 crore cap amount with 422 183ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: rejects a beyond the safe-integer range amount with 422 186ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > rejects a non-INR currency, a long description and a bad email with 422 189ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > accepts the cap exactly (₹1 crore) 530ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > test 14: a missing Idempotency-Key -> 400, and nothing is stored 270ms
+ ✓ tests/payments.test.ts > POST /api/payments: validation > rejects an Idempotency-Key that is too short or contains spaces with 400 194ms
+ ✓ tests/payments.test.ts > POST /api/payments: provider registration > stores the provider payment id when registration succeeds 609ms
+ ✓ tests/payments.test.ts > POST /api/payments: provider registration > keeps the payment PENDING and flags it for reconciliation when the provider times out 608ms
+ ✓ tests/reconciliation.test.ts > test 16: reconciliation > resolves, leaves unknowns alone, reports mismatches without overwriting, and a second run changes nothing 3836ms
+ ✓ tests/reconciliation.test.ts > test 16: reconciliation > resolves PENDING -> FAILED without a ledger entry 1251ms
+ ✓ tests/reconciliation.test.ts > test 16: reconciliation > clears the review flag when the provider confirms our final status 1257ms
+ ✓ tests/reconciliation.test.ts > test 16: reconciliation > reports an amount mismatch instead of resolving 916ms
+ ✓ tests/reconciliation.test.ts > test 16: reconciliation > respects olderThanMinutes and limit 671ms
+ ✓ tests/reconciliation.test.ts > test 16: reconciliation > validates the request body (422) 180ms
+ ✓ tests/mockProvider.test.ts > mock provider: register and read > registers a payment idempotently by reference 1139ms
+ ✓ tests/mockProvider.test.ts > mock provider: register and read > returns the provider status, or 404 when it has no record 430ms
+ ✓ tests/mockProvider.test.ts > mock provider: simulated failures (deterministic) > answers 503 when the error rate is 1 181ms
+ ✓ tests/mockProvider.test.ts > mock provider: simulated failures (deterministic) > holds the request open when the timeout rate is 1 (the client must give up) 388ms
+ ✓ tests/mockProvider.test.ts > mock provider: simulated failures (deterministic) > applies the configured delay 414ms
+ ✓ tests/mockProvider.test.ts > mock provider: settle fires signed webhooks > settles SUCCESS and the signed webhook moves the payment to SUCCESS 1984ms
+ ✓ tests/mockProvider.test.ts > mock provider: settle fires signed webhooks > sends the same event 5 times concurrently and the money moves once 1548ms
+ ✓ tests/mockProvider.test.ts > mock provider: settle fires signed webhooks > can update only the provider side, without a webhook (used for lost-webhook scenarios) 542ms
+ ✓ tests/mockProvider.test.ts > mock provider: settle fires signed webhooks > returns 202 and delivers later when a delay is requested 1616ms
+ ✓ tests/mockProvider.test.ts > mock provider: settle fires signed webhooks > returns 404 when settling an unknown reference and 422 for an invalid status 393ms
+ ✓ tests/mockProvider.test.ts > mock provider: disabled > mounts none of its routes, including /control, when MOCK_PROVIDER_ENABLED=false 169ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments: pagination, filters, search > paginates newest first and reports totals 1890ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments: pagination, filters, search > defaults to page 1 with 10 per page, and returns an empty page past the end 554ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments: pagination, filters, search > filters by status 615ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments: pagination, filters, search > searches by reference or provider payment id (case-insensitive, wildcards literal) 569ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments: pagination, filters, search > rejects invalid query parameters with 422 186ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments/summary > returns counts and amounts per status, with zeros for missing statuses 470ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments/:id > returns the payment with its audit timeline and webhook events (no payload) 715ms
+ ✓ tests/paymentQueries.test.ts > GET /api/payments/:id > returns 404 for an unknown id and for a malformed id 243ms
+ ✓ tests/appendOnly.test.ts > append-only tables > UPDATE ledger_entries raises 812ms
+ ✓ tests/appendOnly.test.ts > append-only tables > DELETE ledger_entries raises 832ms
+ ✓ tests/appendOnly.test.ts > append-only tables > UPDATE payment_audit_log raises 665ms
+ ✓ tests/appendOnly.test.ts > append-only tables > DELETE payment_audit_log raises 618ms
+ ✓ tests/appendOnly.test.ts > append-only tables > raises even when the statement matches no rows 610ms
+ ✓ tests/appendOnly.test.ts > append-only tables > leaves the rows unchanged and still allows inserts 840ms
+ ✓ tests/reliability.test.ts > payment creation with a real provider > stores the provider payment id when the provider answers 1168ms
+ ✓ tests/reliability.test.ts > payment creation with a real provider > test 15: provider timeout on create -> 201, stays PENDING, needs_reconciliation = true, never FAILED 1573ms
+ ✓ tests/reliability.test.ts > payment creation with a real provider > provider errors (503) are retried, then the payment is flagged, not failed 507ms
+ ✓ tests/reliability.test.ts > payment creation with a real provider > an idempotent replay does not call the provider again 932ms
+ ✓ tests/isolation.test.ts > resolveMerchantScope > pins a merchant user to the merchant in their JWT, ignoring any requested merchant 1ms
+ ✓ tests/isolation.test.ts > resolveMerchantScope > lets an admin see all merchants or filter to one 0ms
+ ✓ tests/isolation.test.ts > requireAuth + requireRole > returns 401 without a token 20ms
+ ✓ tests/isolation.test.ts > requireAuth + requireRole > returns 403 for a merchant on an admin-only route 10ms
+ ✓ tests/isolation.test.ts > requireAuth + requireRole > allows an admin 6ms
+ ✓ tests/isolation.test.ts > test 10: merchant isolation on the payment routes > returns 404 (not 403) when Merchant A reads Merchant B's payment 1354ms
+ ✓ tests/isolation.test.ts > test 10: merchant isolation on the payment routes > lists only the caller's own payments, even when another merchantId is requested 555ms
+ ✓ tests/isolation.test.ts > test 10: merchant isolation on the payment routes > scopes the summary to the caller's merchant 404ms
+ ✓ tests/isolation.test.ts > test 10: merchant isolation on the payment routes > lets an admin read every merchant, filter by merchantId, and open any payment 697ms
+ ✓ tests/isolation.test.ts > test 10: merchant isolation on the payment routes > forbids merchants from calling /api/admin/* (403) 334ms
+ ✓ tests/isolation.test.ts > test 10: merchant isolation on the payment routes > requires authentication before any scoping happens 317ms
+ ✓ tests/auth.test.ts > POST /api/auth/login > returns a token and user, and sets an httpOnly SameSite=Lax session cookie 857ms
+ ✓ tests/auth.test.ts > POST /api/auth/login > normalises email case and whitespace 276ms
+ ✓ tests/auth.test.ts > POST /api/auth/login > gives the same generic error for a wrong password and an unknown email 425ms
+ ✓ tests/auth.test.ts > POST /api/auth/login > rejects an invalid body with 422 and the standard error shape 196ms
+ ✓ tests/auth.test.ts > POST /api/auth/login > rejects malformed JSON with 400 199ms
+ ✓ tests/auth.test.ts > POST /api/auth/login > rate-limits repeated login attempts per IP 632ms
+ ✓ tests/auth.test.ts > GET /api/auth/me > accepts a Bearer token 220ms
+ ✓ tests/auth.test.ts > GET /api/auth/me > accepts the session cookie set by login 294ms
+ ✓ tests/auth.test.ts > GET /api/auth/me > returns 401 without credentials 151ms
+ ✓ tests/auth.test.ts > GET /api/auth/me > returns 401 for a token signed with another secret 151ms
+ ✓ tests/auth.test.ts > GET /api/auth/me > returns 401 for an unsigned (alg=none) token 150ms
+ ✓ tests/auth.test.ts > POST /api/auth/logout > clears the session cookie 149ms
+ ✓ tests/admin.test.ts > GET /api/admin/merchants > lists every merchant (id + name only) for an admin 782ms
+ ✓ tests/admin.test.ts > GET /api/admin/merchants > returns 403 for a merchant user 170ms
+ ✓ tests/admin.test.ts > GET /api/admin/merchants > returns 401 without credentials 165ms
+ ✓ tests/platform.test.ts > health and error shape > GET /api/health reports the database is reachable 509ms
+ ✓ tests/platform.test.ts > health and error shape > unknown routes return 404 in the standard error shape 5ms
+ ✓ tests/platform.test.ts > health and error shape > sets security headers and a request id 67ms
+ ✓ tests/platform.test.ts > health and error shape > only allows CORS from WEB_ORIGIN 132ms
+ ✓ tests/platform.test.ts > config validation > accepts a valid environment and applies defaults 1ms
+ ✓ tests/platform.test.ts > config validation > rejects a JWT secret shorter than 32 characters 1ms
+ ✓ tests/platform.test.ts > config validation > refuses placeholder secrets outside NODE_ENV=test, without echoing the value 1ms
+ ✓ tests/platform.test.ts > config validation > allows placeholder secrets under NODE_ENV=test 0ms
+ ✓ tests/platform.test.ts > logger redaction > redacts auth headers, cookies, webhook signatures and secret-like fields 2ms
+ ✓ tests/platform.test.ts > canonical request hash > ignores key order and undefined values 1ms
+ ✓ tests/platform.test.ts > test database guard > treats pooled and direct Neon hosts, and different params, as the same database 0ms
+ ✓ tests/platform.test.ts > mock provider safety > refuses to start in production with the unauthenticated mock provider enabled 1ms
+ ✓ tests/providerClient.test.ts > provider client: retries > retries a 503 with exponential backoff + full jitter, then succeeds 20ms
+ ✓ tests/providerClient.test.ts > provider client: retries > gives up after 3 attempts and reports an error (not a timeout) for repeated 503s 1ms
+ ✓ tests/providerClient.test.ts > provider client: retries > reports a timeout as kind "timeout" (outcome unknown) after retrying 100ms
+ ✓ tests/providerClient.test.ts > provider client: retries > retries network errors 1ms
+ ✓ tests/providerClient.test.ts > provider client: retries > does not retry final 4xx answers 2ms
+ ✓ tests/providerClient.test.ts > provider client: retries > treats an unexpected response body as an error 1ms
+ ✓ tests/providerClient.test.ts > provider client: retries > URL-encodes the reference 0ms
+ ✓ tests/providerClient.test.ts > backoffDelay (full jitter) > grows exponentially and is capped 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > PENDING -> PENDING is stale 2ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > PENDING -> SUCCESS is apply 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > PENDING -> FAILED is apply 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > SUCCESS -> PENDING is stale 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > SUCCESS -> SUCCESS is stale 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > SUCCESS -> FAILED is invalid 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > FAILED -> PENDING is stale 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > FAILED -> FAILED is stale 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > FAILED -> SUCCESS is invalid 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > covers all 9 combinations exactly once 0ms
+ ✓ tests/stateMachine.test.ts > test 18: state machine > treats SUCCESS and FAILED as terminal, PENDING as not 0ms
+
+ Test Files  13 passed (13)
+      Tests  131 passed (131)
+   Start at  04:01:35
+   Duration  80.04s (transform 464ms, setup 2.62s, import 5.02s, tests 68.23s, environment 1ms)
+
